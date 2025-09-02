@@ -16,3 +16,4 @@ const JigsawGame = dynamic(() => import('./JigsawGame'), {
 export default function GameWrapper() {
   return <JigsawGame />;
 }
+

@@ -30,27 +30,38 @@ export default function App() {
     const innerCount = ROWS * COLS;
     const pairCount = Math.floor(innerCount / 2);
     const tiles = [];
+    
+    // Create pairs of images
     for (let i = 0; i < pairCount; i++) {
-      const type = pool[i % pool.length];
-      tiles.push(type, type);
+      const imageType = pool[i % pool.length];
+      // Add the same image twice to create a pair
+      tiles.push(imageType, imageType);
     }
-    if (tiles.length < innerCount) tiles.push("");
+    
+    // Add empty tile if needed (for odd number of cells)
+    if (tiles.length < innerCount) {
+      tiles.push("");
+    }
 
+    // Shuffle the tiles array
     for (let i = tiles.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
     }
 
+    // Create the grid
     const grid = Array.from({ length: totalRows }, () =>
       Array.from({ length: totalCols }, () => "")
     );
 
+    // Fill the inner grid with shuffled tiles
     let idx = 0;
     for (let r = PAD; r < totalRows - PAD; r++) {
       for (let c = PAD; c < totalCols - PAD; c++) {
         grid[r][c] = tiles[idx++] || "";
       }
     }
+    
     return grid;
   };
 
@@ -69,11 +80,31 @@ export default function App() {
 
   const samePos = (a, b) => a && b && a.r === b.r && a.c === b.c;
 
+  // Debug function to check image pairs
+  const debugImagePairs = () => {
+    const imageCounts = {};
+    for (let r = PAD; r < totalRows - PAD; r++) {
+      for (let c = PAD; c < totalCols - PAD; c++) {
+        const cell = grid[r][c];
+        if (cell && cell.src) {
+          const src = cell.src;
+          imageCounts[src] = (imageCounts[src] || 0) + 1;
+        }
+      }
+    }
+    console.log("Image counts:", imageCounts);
+    return imageCounts;
+  };
+
   function canConnect(grid, start, end) {
     if (!start || !end) return null;
     if (start.r === end.r && start.c === end.c) return null;
     if (grid[start.r][start.c] === "" || grid[end.r][end.c] === "") return null;
-    if (grid[start.r][start.c] !== grid[end.r][end.c]) return null;
+    
+    // Compare image sources instead of objects
+    const startImg = grid[start.r][start.c];
+    const endImg = grid[end.r][end.c];
+    if (startImg.src !== endImg.src) return null;
 
     // Check if they are directly adjacent (no turns needed)
     const isAdjacent = Math.abs(start.r - end.r) + Math.abs(start.c - end.c) === 1;
@@ -315,6 +346,7 @@ export default function App() {
           <div className="flex gap-2">
             <button onClick={reset} className="px-3 py-2 rounded bg-indigo-600 hover:bg-indigo-500">Reset</button>
             <button onClick={shuffleInner} className="px-3 py-2 rounded bg-yellow-600 hover:bg-yellow-500">Shuffle</button>
+            <button onClick={debugImagePairs} className="px-3 py-2 rounded bg-green-600 hover:bg-green-500">Debug</button>
           </div>
         </div>
 
