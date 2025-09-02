@@ -56,6 +56,7 @@ export default function App() {
   const [removedCount, setRemovedCount] = useState(0);
   const [startTime, setStartTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000);
@@ -128,34 +129,59 @@ export default function App() {
   }
 
   const onCellClick = (r, c) => {
+    // Prevent multiple rapid clicks
+    if (isProcessing) return;
+    
     const val = grid[r][c];
     if (!val) return;
+    
     const pos = { r, c };
+    
+    // If no tile is selected, select this one
     if (!selected) {
       setSelected(pos);
       setMessage("");
       return;
     }
+    
+    // If clicking the same tile, deselect it
     if (samePos(selected, pos)) {
       setSelected(null);
+      setMessage("");
       return;
     }
+    
+    // If clicking a different tile, try to connect
+    setIsProcessing(true);
     setMoves((m) => m + 1);
-    const path = canConnect(grid, selected, pos);
-    if (path) {
-      const newGrid = grid.map((row) => row.slice());
-      newGrid[selected.r][selected.c] = "";
-      newGrid[pos.r][pos.c] = "";
-      setGrid(newGrid);
-      setSelected(null);
-      setMessage("Matched and removed!");
-      setRemovedCount((n) => n + 2);
-      const remain = newGrid.flat().filter((x) => x !== "").length;
-      if (remain === 0) setMessage("You win! All cleared.");
-    } else {
-      setMessage("Cannot connect.");
-      setSelected(pos);
-    }
+    
+    // Use setTimeout to prevent rapid clicking issues
+    setTimeout(() => {
+      const path = canConnect(grid, selected, pos);
+      
+      if (path) {
+        // Successful match
+        const newGrid = grid.map((row) => row.slice());
+        newGrid[selected.r][selected.c] = "";
+        newGrid[pos.r][pos.c] = "";
+        setGrid(newGrid);
+        setSelected(null);
+        setMessage("Matched and removed!");
+        setRemovedCount((n) => n + 2);
+        
+        // Check if game is won
+        const remain = newGrid.flat().filter((x) => x !== "").length;
+        if (remain === 0) {
+          setMessage("You win! All cleared.");
+        }
+      } else {
+        // Cannot connect - select the new tile instead
+        setMessage("Cannot connect. Try another pair.");
+        setSelected(pos);
+      }
+      
+      setIsProcessing(false);
+    }, 50); // Small delay to prevent rapid clicking
   };
 
 
@@ -167,6 +193,7 @@ export default function App() {
     setRemovedCount(0);
     setStartTime(Date.now());
     setElapsed(0);
+    setIsProcessing(false);
   };
 
   const shuffleInner = () => {
@@ -182,6 +209,7 @@ export default function App() {
     setGrid(newGrid);
     setSelected(null);
     setMessage("Shuffled.");
+    setIsProcessing(false);
   };
 
   useEffect(() => {
