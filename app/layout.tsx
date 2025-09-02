@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jigsaw Game",
-  description: "Jigsaw Game by create vinhnv",
+  title: "Sentient Connect Game",
+  description: "Semtient Connect Game",
 };
 
 export default function RootLayout({
