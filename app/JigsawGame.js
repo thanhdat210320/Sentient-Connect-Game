@@ -70,6 +70,12 @@ export default function App() {
     if (grid[start.r][start.c] === "" || grid[end.r][end.c] === "") return null;
     if (grid[start.r][start.c] !== grid[end.r][end.c]) return null;
 
+    // Check if they are directly adjacent (no turns needed)
+    const isAdjacent = Math.abs(start.r - end.r) + Math.abs(start.c - end.c) === 1;
+    if (isAdjacent) {
+      return [{ r: start.r, c: start.c }, { r: end.r, c: end.c }];
+    }
+
     const dirs = [
       { dr: -1, dc: 0 },
       { dr: 0, dc: 1 },
@@ -80,69 +86,44 @@ export default function App() {
     const R = grid.length;
     const C = grid[0].length;
 
-    const visited = Array.from({ length: R }, () =>
-      Array.from({ length: C }, () => Array(4).fill(Infinity))
-    );
+    // Use a simpler BFS approach
+    const visited = Array.from({ length: R }, () => Array(C).fill(false));
+    const queue = [{ r: start.r, c: start.c, path: [{ r: start.r, c: start.c }], turns: 0, lastDir: -1 }];
+    visited[start.r][start.c] = true;
 
-    const queue = [];
-    for (let d = 0; d < 4; d++) {
-      const nr = start.r + dirs[d].dr;
-      const nc = start.c + dirs[d].dc;
-      if (nr < 0 || nr >= R || nc < 0 || nc >= C) continue;
-      if (grid[nr][nc] === "" || (nr === end.r && nc === end.c)) {
-        visited[nr][nc][d] = 0;
-        queue.push({ r: nr, c: nc, dir: d, turns: 0, prev: { r: start.r, c: start.c, dir: null } });
-      }
-    }
-
-    const parent = new Map();
-    const key = (p) => `${p.r},${p.c},${p.dir}`;
-    for (const e of queue) parent.set(key(e), e.prev);
-
-    while (queue.length) {
-      const cur = queue.shift();
-      if (cur.r === end.r && cur.c === end.c && cur.turns <= 2) {
-        const path = [{ r: end.r, c: end.c }];
-        let k = key(cur);
-        let p = parent.get(k);
-        while (p) {
-          path.push({ r: p.r, c: p.c });
-          p = parent.get(`${p.r},${p.c},${p.dir}`);
-        }
-        path.push({ r: start.r, c: start.c });
-        return path.reverse();
+    while (queue.length > 0) {
+      const current = queue.shift();
+      
+      // Check if we reached the end
+      if (current.r === end.r && current.c === end.c && current.turns <= 2) {
+        return current.path;
       }
 
-      const d = cur.dir;
-      const nr = cur.r + dirs[d].dr;
-      const nc = cur.c + dirs[d].dc;
-      if (nr >= 0 && nr < R && nc >= 0 && nc < C) {
+      // Try all 4 directions
+      for (let d = 0; d < 4; d++) {
+        const nr = current.r + dirs[d].dr;
+        const nc = current.c + dirs[d].dc;
+        
+        // Check bounds
+        if (nr < 0 || nr >= R || nc < 0 || nc >= C) continue;
+        
+        // Skip if already visited
+        if (visited[nr][nc]) continue;
+        
+        // Check if this cell is empty or is our target
         if (grid[nr][nc] === "" || (nr === end.r && nc === end.c)) {
-          if (visited[nr][nc][d] > cur.turns) {
-            visited[nr][nc][d] = cur.turns;
-            const next = { r: nr, c: nc, dir: d, turns: cur.turns };
-            parent.set(key(next), { r: cur.r, c: cur.c, dir: cur.dir });
-            queue.push(next);
-          }
-        }
-      }
-
-      for (let nd = 0; nd < 4; nd++) {
-        if (nd === d) continue;
-        const nr2 = cur.r + dirs[nd].dr;
-        const nc2 = cur.c + dirs[nd].dc;
-        if (nr2 < 0 || nr2 >= R || nc2 < 0 || nc2 >= C) continue;
-        if (grid[nr2][nc2] === "" || (nr2 === end.r && nc2 === end.c)) {
-          const newTurns = cur.turns + 1;
-          if (newTurns <= 2 && visited[nr2][nc2][nd] > newTurns) {
-            visited[nr2][nc2][nd] = newTurns;
-            const next = { r: nr2, c: nc2, dir: nd, turns: newTurns };
-            parent.set(key(next), { r: cur.r, c: cur.c, dir: cur.dir });
-            queue.push(next);
+          const newTurns = current.lastDir === -1 || current.lastDir === d ? current.turns : current.turns + 1;
+          
+          // Only proceed if we haven't exceeded 2 turns
+          if (newTurns <= 2) {
+            visited[nr][nc] = true;
+            const newPath = [...current.path, { r: nr, c: nc }];
+            queue.push({ r: nr, c: nc, path: newPath, turns: newTurns, lastDir: d });
           }
         }
       }
     }
+    
     return null;
   }
 
